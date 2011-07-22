@@ -15,20 +15,20 @@
  */
 package ros.android.pantilt;
 
-import org.ros.exception.RosInitException;
-import org.ros.exception.RosNameException;
+import org.ros.exception.RosException;
+import org.ros.exception.RemoteException;
 import org.ros.rosjava.android.OrientationPublisher;
 import ros.android.activity.AppManager;
 import ros.android.activity.RosAppActivity;
 import android.os.Bundle;
-import org.ros.Node;
+import org.ros.node.Node;
 import android.view.Window;
 import android.view.WindowManager;
 import android.hardware.SensorManager;
 import android.util.Log;
-import org.ros.ServiceClient;
+import org.ros.node.service.ServiceClient;
 import org.ros.service.app_manager.StartApp;
-import org.ros.ServiceResponseListener;
+import org.ros.node.service.ServiceResponseListener;
 import android.widget.Toast;
 import ros.android.views.SensorImageView;
 import org.ros.namespace.NameResolver;
@@ -107,14 +107,14 @@ public class PanTilt extends RosAppActivity {
       Node node = getNode();
       NameResolver appNamespace = getAppNamespace(node);
       Log.i("PanTilt", "init cameraView");
-      cameraView.start(node, appNamespace.resolve(cameraTopic));
+      cameraView.start(node, appNamespace.resolve(cameraTopic).toString());
       cameraView.post(new Runnable() {
           @Override
           public void run() {
             cameraView.setSelected(true);
           }
         });  
-    } catch (RosInitException e) {
+    } catch (RosException e) {
       Log.e("PanTilt", "initRos() caught exception: " + e.toString() + ", message = " + e.getMessage());
     }
   }
@@ -133,7 +133,7 @@ public class PanTilt extends RosAppActivity {
           }
 
           @Override
-          public void onFailure(Exception e) {
+          public void onFailure(RemoteException e) {
             safeToastStatus("Failed: " + e.getMessage());
           }
         });
