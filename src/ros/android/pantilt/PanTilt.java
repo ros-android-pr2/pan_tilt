@@ -62,7 +62,7 @@ public class PanTilt extends RosAppActivity {
 
     robotAppName = getIntent().getStringExtra(AppManager.PACKAGE + ".robot_app_name");
     if( robotAppName == null ) {
-      robotAppName = "turtlebot_teleop/android_make_a_map";
+      robotAppName = "pr2_pan_tilt/pr2_pan_tilt";
     }
     if (getIntent().hasExtra("camera_topic")) {
       cameraTopic = getIntent().getStringExtra("camera_topic");
@@ -87,6 +87,14 @@ public class PanTilt extends RosAppActivity {
       startApp();
       orientationPublisher.main(getNodeConfiguration());
       dashboard.start(node);
+      NameResolver appNamespace = getAppNamespace(node);
+      cameraView.start(node, appNamespace.resolve(cameraTopic).toString());
+      cameraView.post(new Runnable() {
+          @Override
+          public void run() {
+            cameraView.setSelected(true);
+          }
+        });  
     } catch (Exception ex) {
       Log.e("PanTilt", "Init error: " + ex.toString());
       safeToastStatus("Failed: " + ex.getMessage());
@@ -99,37 +107,12 @@ public class PanTilt extends RosAppActivity {
     orientationPublisher.shutdown();
     dashboard.stop();
   }
-
-
-  private void initRos() {
-    try {
-      Log.i("PanTilt", "getNode()");
-      Node node = getNode();
-      NameResolver appNamespace = getAppNamespace(node);
-      Log.i("PanTilt", "init cameraView");
-      cameraView.start(node, appNamespace.resolve(cameraTopic).toString());
-      cameraView.post(new Runnable() {
-          @Override
-          public void run() {
-            cameraView.setSelected(true);
-          }
-        });  
-    } catch (RosException e) {
-      Log.e("PanTilt", "initRos() caught exception: " + e.toString() + ", message = " + e.getMessage());
-    }
-  }
   
   private void startApp() {
     appManager.startApp(robotAppName,
         new ServiceResponseListener<StartApp.Response>() {
           @Override
           public void onSuccess(StartApp.Response message) {
-            initRos();
-            // TODO(kwc): add status code for app already running
-            /*
-             * if (message.started) { safeToastStatus("started"); initRos(); }
-             * else { safeToastStatus(message.message); }
-             */
           }
 
           @Override
