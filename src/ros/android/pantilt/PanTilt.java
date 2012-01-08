@@ -15,7 +15,7 @@
  */
 package ros.android.pantilt;
 
-import org.ros.rosjava.android.OrientationPublisher;
+import org.ros.android.OrientationPublisher;
 import ros.android.activity.RosAppActivity;
 import android.os.Bundle;
 import org.ros.node.Node;
@@ -27,6 +27,11 @@ import org.ros.namespace.NameResolver;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import org.ros.node.NodeRunner;
+import org.ros.node.NodeConfiguration;
+import org.ros.node.DefaultNodeRunner;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 
 /**
  * @author damonkohler@google.com (Damon Kohler)
@@ -38,6 +43,8 @@ public class PanTilt extends RosAppActivity {
   private String robotAppName;
   private String cameraTopic;
   private SensorImageView cameraView;
+  private NodeRunner nodeRunner;
+
   
   /** Called when the activity is first created. */
   @Override
@@ -46,6 +53,9 @@ public class PanTilt extends RosAppActivity {
     setDashboardResource(R.id.top_bar);
     setMainWindowResource(R.layout.main);
     super.onCreate(savedInstanceState);
+
+    nodeRunner = DefaultNodeRunner.newDefault();
+
 
     if (getIntent().hasExtra("camera_topic")) {
       cameraTopic = getIntent().getStringExtra("camera_topic");
@@ -61,8 +71,10 @@ public class PanTilt extends RosAppActivity {
   @Override
   protected void onNodeCreate(Node node) {
     super.onNodeCreate(node);
-    try {
-      orientationPublisher.main(getNodeConfiguration());
+    try { 
+      NodeConfiguration nc = NodeConfiguration.copyOf(getNodeConfiguration());
+      nc.setNodeName(node.getName() + "_pan_tilt");
+      nodeRunner.run(orientationPublisher, nc);
       NameResolver appNamespace = getAppNamespace(node);
       cameraView.start(node, appNamespace.resolve(cameraTopic).toString());
       cameraView.post(new Runnable() {
@@ -71,16 +83,27 @@ public class PanTilt extends RosAppActivity {
             cameraView.setSelected(true);
           }
         });  
-    } catch (Exception ex) {
+    } catch (Exception e) {
+      final Exception ex = e;
       Log.e("PanTilt", "Init error: " + ex.toString());
-      safeToastStatus("Failed: " + ex.getMessage());
+      ex.printStackTrace();
+      runOnUiThread(new Runnable() {
+          @Override
+            public void run() {
+            AlertDialog d = new AlertDialog.Builder(PanTilt.this).setTitle("Error!").setCancelable(false)
+              .setMessage("Failed: cannot contact robot:" + ex.toString())
+              .setNeutralButton("Ok", new DialogInterface.OnClickListener() {
+                  public void onClick(DialogInterface dialog, int which) { }})
+              .create();
+            d.show();
+          }});
     }
   }
 
   @Override
   protected void onNodeDestroy(Node node) {
     super.onNodeDestroy(node);
-    orientationPublisher.shutdown();
+    nodeRunner.shutdownNodeMain(orientationPublisher);
   }
 
   @Override
