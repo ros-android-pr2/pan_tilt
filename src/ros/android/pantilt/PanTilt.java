@@ -27,9 +27,9 @@ import org.ros.namespace.NameResolver;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import org.ros.node.NodeRunner;
 import org.ros.node.NodeConfiguration;
-import org.ros.node.DefaultNodeRunner;
+import org.ros.node.NodeMainExecutor;
+import org.ros.node.DefaultNodeMainExecutor;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 
@@ -43,7 +43,7 @@ public class PanTilt extends RosAppActivity {
   private String robotAppName;
   private String cameraTopic;
   private SensorImageView cameraView;
-  private NodeRunner nodeRunner;
+  private NodeMainExecutor nodeMainExecutor;
 
   
   /** Called when the activity is first created. */
@@ -54,8 +54,7 @@ public class PanTilt extends RosAppActivity {
     setMainWindowResource(R.layout.main);
     super.onCreate(savedInstanceState);
 
-    nodeRunner = DefaultNodeRunner.newDefault();
-
+    nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
 
     if (getIntent().hasExtra("camera_topic")) {
       cameraTopic = getIntent().getStringExtra("camera_topic");
@@ -74,7 +73,7 @@ public class PanTilt extends RosAppActivity {
     try { 
       NodeConfiguration nc = NodeConfiguration.copyOf(getNodeConfiguration());
       nc.setNodeName(node.getName() + "_pan_tilt");
-      nodeRunner.run(orientationPublisher, nc);
+      nodeMainExecutor.execute(orientationPublisher, nc);
       NameResolver appNamespace = getAppNamespace(node);
       cameraView.start(node, appNamespace.resolve(cameraTopic).toString());
       cameraView.post(new Runnable() {
@@ -103,7 +102,7 @@ public class PanTilt extends RosAppActivity {
   @Override
   protected void onNodeDestroy(Node node) {
     super.onNodeDestroy(node);
-    nodeRunner.shutdownNodeMain(orientationPublisher);
+    nodeMainExecutor.shutdownNodeMain(orientationPublisher);
   }
 
   @Override
